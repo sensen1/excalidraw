@@ -667,12 +667,12 @@ export const actionChangeFontFamily = register({
       },
       {
         value: FONT_FAMILY.Muyao,
-        text: t("labels.handDrawn"),
+        text: t("labels.handDrawn1"),
         icon: FreedrawIcon,
       },
       {
         value: FONT_FAMILY.Wangqiang,
-        text: t("labels.handDrawn"),
+        text: t("labels.handDrawn2"),
         icon: FreedrawIcon,
       },
       {
