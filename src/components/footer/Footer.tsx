@@ -1,7 +1,6 @@
 import clsx from "clsx";
+import { actionShortcuts } from "../../actions";
 import { ActionManager } from "../../actions/manager";
-import { t } from "../../i18n";
-import { AppState } from "../../types";
 import {
   ExitZenModeAction,
   FinalizeAction,
@@ -9,25 +8,25 @@ import {
   ZoomActions,
 } from "../Actions";
 import { useDevice } from "../App";
-import { WelcomeScreenHelpArrow } from "../icons";
+import { useTunnels } from "../../context/tunnels";
+import { HelpButton } from "../HelpButton";
 import { Section } from "../Section";
 import Stack from "../Stack";
-import WelcomeScreenDecor from "../WelcomeScreenDecor";
-import FooterCenter from "./FooterCenter";
+import { UIAppState } from "../../types";
 
 const Footer = ({
   appState,
   actionManager,
   showExitZenModeBtn,
   renderWelcomeScreen,
-  children,
 }: {
-  appState: AppState;
+  appState: UIAppState;
   actionManager: ActionManager;
   showExitZenModeBtn: boolean;
   renderWelcomeScreen: boolean;
-  children?: React.ReactNode;
 }) => {
+  const { FooterCenterTunnel, WelcomeScreenHelpHintTunnel } = useTunnels();
+
   const device = useDevice();
   const showFinalize =
     !appState.viewModeEnabled && appState.multiElement && device.isTouchScreen;
@@ -71,23 +70,17 @@ const Footer = ({
           </Section>
         </Stack.Col>
       </div>
-      <FooterCenter>{children}</FooterCenter>
+      <FooterCenterTunnel.Out />
       <div
         className={clsx("layer-ui__wrapper__footer-right zen-mode-transition", {
-          "transition-right disable-pointerEvents": appState.zenModeEnabled,
+          "transition-right": appState.zenModeEnabled,
         })}
       >
         <div style={{ position: "relative" }}>
-          <WelcomeScreenDecor
-            shouldRender={renderWelcomeScreen && !appState.isLoading}
-          >
-            <div className="virgil WelcomeScreen-decor WelcomeScreen-decor--help-pointer">
-              <div>{t("welcomeScreen.helpHints")}</div>
-              {WelcomeScreenHelpArrow}
-            </div>
-          </WelcomeScreenDecor>
-
-          {actionManager.renderAction("toggleShortcuts")}
+          {renderWelcomeScreen && <WelcomeScreenHelpHintTunnel.Out />}
+          <HelpButton
+            onClick={() => actionManager.executeAction(actionShortcuts)}
+          />
         </div>
       </div>
       <ExitZenModeAction

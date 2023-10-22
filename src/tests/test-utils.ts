@@ -6,15 +6,17 @@ import {
   RenderResult,
   RenderOptions,
   waitFor,
+  fireEvent,
 } from "@testing-library/react";
 
 import * as toolQueries from "./queries/toolQueries";
 import { ImportedDataState } from "../data/types";
-import { STORAGE_KEYS } from "../excalidraw-app/app_constants";
+import { STORAGE_KEYS } from "../../excalidraw-app/app_constants";
 
 import { SceneData } from "../types";
 import { getSelectedElements } from "../scene/selection";
 import { ExcalidrawElement } from "../element/types";
+import { UI } from "./helpers/ui";
 
 const customQueries = {
   ...queries,
@@ -47,13 +49,28 @@ const renderApp: TestRenderFn = async (ui, options) => {
     // child App component isn't likely mounted yet (and thus canvas not
     // present in DOM)
     get() {
-      return renderResult.container.querySelector("canvas")!;
+      return renderResult.container.querySelector("canvas.static")!;
+    },
+  });
+
+  Object.defineProperty(GlobalTestState, "interactiveCanvas", {
+    // must be a getter because at the time of ExcalidrawApp render the
+    // child App component isn't likely mounted yet (and thus canvas not
+    // present in DOM)
+    get() {
+      return renderResult.container.querySelector("canvas.interactive")!;
     },
   });
 
   await waitFor(() => {
-    const canvas = renderResult.container.querySelector("canvas");
+    const canvas = renderResult.container.querySelector("canvas.static");
     if (!canvas) {
+      throw new Error("not initialized yet");
+    }
+
+    const interactiveCanvas =
+      renderResult.container.querySelector("canvas.interactive");
+    if (!interactiveCanvas) {
       throw new Error("not initialized yet");
     }
   });
@@ -79,9 +96,15 @@ export class GlobalTestState {
    */
   static renderResult: RenderResult<typeof customQueries> = null!;
   /**
-   * retrieves canvas for currently rendered app instance
+   * retrieves static canvas for currently rendered app instance
    */
   static get canvas(): HTMLCanvasElement {
+    return null!;
+  }
+  /**
+   * retrieves interactive canvas for currently rendered app instance
+   */
+  static get interactiveCanvas(): HTMLCanvasElement {
     return null!;
   }
 }
@@ -184,3 +207,60 @@ export const assertSelectedElements = (
   expect(selectedElementIds.length).toBe(ids.length);
   expect(selectedElementIds).toEqual(expect.arrayContaining(ids));
 };
+
+export const createPasteEvent = <T extends "text/plain" | "text/html">(
+  items: Record<T, string>,
+  files?: File[],
+) => {
+  return Object.assign(
+    new Event("paste", {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    }),
+    {
+      clipboardData: {
+        getData: (type: string) =>
+          (items as Record<string, string>)[type] || "",
+        files: files || [],
+      },
+    },
+  ) as any as ClipboardEvent;
+};
+
+export const toggleMenu = (container: HTMLElement) => {
+  // open menu
+  fireEvent.click(container.querySelector(".dropdown-menu-button")!);
+};
+
+export const togglePopover = (label: string) => {
+  // Needed for radix-ui/react-popover as tests fail due to resize observer not being present
+  (global as any).ResizeObserver = class ResizeObserver {
+    constructor(cb: any) {
+      (this as any).cb = cb;
+    }
+
+    observe() {}
+
+    unobserve() {}
+    disconnect() {}
+  };
+
+  UI.clickLabeledElement(label);
+};
+
+expect.extend({
+  toBeNonNaNNumber(received) {
+    const pass = typeof received === "number" && !isNaN(received);
+    if (pass) {
+      return {
+        message: () => `expected ${received} not to be a non-NaN number`,
+        pass: true,
+      };
+    }
+    return {
+      message: () => `expected ${received} to be a non-NaN number`,
+      pass: false,
+    };
+  },
+});

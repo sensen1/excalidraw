@@ -1,5 +1,6 @@
+import { isDarwin } from "../constants";
 import { t } from "../i18n";
-import { isDarwin } from "../keys";
+import { SubtypeOf } from "../utility-types";
 import { getShortcutKey } from "../utils";
 import { ActionName } from "./types";
 
@@ -8,6 +9,7 @@ export type ShortcutName =
       ActionName,
       | "toggleTheme"
       | "loadScene"
+      | "clearCanvas"
       | "cut"
       | "copy"
       | "paste"
@@ -26,13 +28,14 @@ export type ShortcutName =
       | "ungroup"
       | "gridMode"
       | "zenMode"
+      | "objectsSnapMode"
       | "stats"
       | "addToLibrary"
       | "viewMode"
       | "flipHorizontal"
       | "flipVertical"
       | "hyperlink"
-      | "toggleLock"
+      | "toggleElementLock"
     >
   | "saveScene"
   | "imageExport";
@@ -41,6 +44,7 @@ const shortcutMap: Record<ShortcutName, string[]> = {
   toggleTheme: [getShortcutKey("Shift+Alt+D")],
   saveScene: [getShortcutKey("CtrlOrCmd+S")],
   loadScene: [getShortcutKey("CtrlOrCmd+O")],
+  clearCanvas: [getShortcutKey("CtrlOrCmd+Delete")],
   imageExport: [getShortcutKey("CtrlOrCmd+Shift+E")],
   cut: [getShortcutKey("CtrlOrCmd+X")],
   copy: [getShortcutKey("CtrlOrCmd+C")],
@@ -71,13 +75,14 @@ const shortcutMap: Record<ShortcutName, string[]> = {
   ungroup: [getShortcutKey("CtrlOrCmd+Shift+G")],
   gridMode: [getShortcutKey("CtrlOrCmd+'")],
   zenMode: [getShortcutKey("Alt+Z")],
+  objectsSnapMode: [getShortcutKey("Alt+S")],
   stats: [getShortcutKey("Alt+/")],
   addToLibrary: [],
   flipHorizontal: [getShortcutKey("Shift+H")],
   flipVertical: [getShortcutKey("Shift+V")],
   viewMode: [getShortcutKey("Alt+R")],
   hyperlink: [getShortcutKey("CtrlOrCmd+K")],
-  toggleLock: [getShortcutKey("CtrlOrCmd+Shift+L")],
+  toggleElementLock: [getShortcutKey("CtrlOrCmd+Shift+L")],
 };
 
 export const getShortcutFromShortcutName = (name: ShortcutName) => {

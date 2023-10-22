@@ -2,7 +2,7 @@ import {
   copyBlobToClipboardAsPng,
   copyTextToSystemClipboard,
 } from "../clipboard";
-import { DEFAULT_EXPORT_PADDING, MIME_TYPES } from "../constants";
+import { DEFAULT_EXPORT_PADDING, isFirefox, MIME_TYPES } from "../constants";
 import { NonDeletedExcalidrawElement } from "../element/types";
 import { t } from "../i18n";
 import { exportToCanvas, exportToSvg } from "../scene/export";
@@ -66,17 +66,14 @@ export const exportCanvas = async (
     }
   }
 
-  const tempCanvas = await exportToCanvas(elements, appState, files, {
+  const tempCanvas = exportToCanvas(elements, appState, files, {
     exportBackground,
     viewBackgroundColor,
     exportPadding,
   });
-  tempCanvas.style.display = "none";
-  document.body.appendChild(tempCanvas);
 
   if (type === "png") {
     let blob = await canvasToBlob(tempCanvas);
-    tempCanvas.remove();
     if (appState.exportEmbedScene) {
       blob = await (
         await import(/* webpackChunkName: "image" */ "./image")
@@ -89,7 +86,9 @@ export const exportCanvas = async (
     return await fileSave(blob, {
       description: "Export to PNG",
       name,
-      extension: appState.exportEmbedScene ? "excalidraw.png" : "png",
+      // FIXME reintroduce `excalidraw.png` when most people upgrade away
+      // from 111.0.5563.64 (arm64), see #6349
+      extension: /* appState.exportEmbedScene ? "excalidraw.png" : */ "png",
       fileHandle,
     });
   } else if (type === "clipboard") {
@@ -97,15 +96,23 @@ export const exportCanvas = async (
       const blob = canvasToBlob(tempCanvas);
       await copyBlobToClipboardAsPng(blob);
     } catch (error: any) {
+      console.warn(error);
       if (error.name === "CANVAS_POSSIBLY_TOO_BIG") {
         throw error;
       }
-      throw new Error(t("alerts.couldNotCopyToClipboard"));
-    } finally {
-      tempCanvas.remove();
+      // TypeError *probably* suggests ClipboardItem not defined, which
+      // people on Firefox can enable through a flag, so let's tell them.
+      if (isFirefox && error.name === "TypeError") {
+        throw new Error(
+          `${t("alerts.couldNotCopyToClipboard")}\n\n${t(
+            "hints.firefox_clipboard_write",
+          )}`,
+        );
+      } else {
+        throw new Error(t("alerts.couldNotCopyToClipboard"));
+      }
     }
   } else {
-    tempCanvas.remove();
     // shouldn't happen
     throw new Error("Unsupported export type");
   }

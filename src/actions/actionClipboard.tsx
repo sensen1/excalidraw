@@ -7,7 +7,6 @@ import {
   probablySupportsClipboardWriteText,
 } from "../clipboard";
 import { actionDeleteSelected } from "./actionDeleteSelected";
-import { getSelectedElements } from "../scene/selection";
 import { exportCanvas } from "../data/index";
 import { getNonDeletedElements, isTextElement } from "../element";
 import { t } from "../i18n";
@@ -16,15 +15,19 @@ export const actionCopy = register({
   name: "copy",
   trackEvent: { category: "element" },
   perform: (elements, appState, _, app) => {
-    const selectedElements = getSelectedElements(elements, appState, true);
+    const elementsToCopy = app.scene.getSelectedElements({
+      selectedElementIds: appState.selectedElementIds,
+      includeBoundTextElement: true,
+      includeElementsInFrames: true,
+    });
 
-    copyToClipboard(selectedElements, appState, app.files);
+    copyToClipboard(elementsToCopy, app.files);
 
     return {
       commitToHistory: false,
     };
   },
-  contextItemPredicate: (elements, appState, appProps, app) => {
+  predicate: (elements, appState, appProps, app) => {
     return app.device.isMobile && !!navigator.clipboard;
   },
   contextItemLabel: "labels.copy",
@@ -41,7 +44,7 @@ export const actionPaste = register({
       commitToHistory: false,
     };
   },
-  contextItemPredicate: (elements, appState, appProps, app) => {
+  predicate: (elements, appState, appProps, app) => {
     return app.device.isMobile && !!navigator.clipboard;
   },
   contextItemLabel: "labels.paste",
@@ -56,7 +59,7 @@ export const actionCut = register({
     actionCopy.perform(elements, appState, data, app);
     return actionDeleteSelected.perform(elements, appState);
   },
-  contextItemPredicate: (elements, appState, appProps, app) => {
+  predicate: (elements, appState, appProps, app) => {
     return app.device.isMobile && !!navigator.clipboard;
   },
   contextItemLabel: "labels.cut",
@@ -72,11 +75,11 @@ export const actionCopyAsSvg = register({
         commitToHistory: false,
       };
     }
-    const selectedElements = getSelectedElements(
-      getNonDeletedElements(elements),
-      appState,
-      true,
-    );
+    const selectedElements = app.scene.getSelectedElements({
+      selectedElementIds: appState.selectedElementIds,
+      includeBoundTextElement: true,
+      includeElementsInFrames: true,
+    });
     try {
       await exportCanvas(
         "clipboard-svg",
@@ -101,7 +104,7 @@ export const actionCopyAsSvg = register({
       };
     }
   },
-  contextItemPredicate: (elements) => {
+  predicate: (elements) => {
     return probablySupportsClipboardWriteText && elements.length > 0;
   },
   contextItemLabel: "labels.copyAsSvg",
@@ -116,11 +119,11 @@ export const actionCopyAsPng = register({
         commitToHistory: false,
       };
     }
-    const selectedElements = getSelectedElements(
-      getNonDeletedElements(elements),
-      appState,
-      true,
-    );
+    const selectedElements = app.scene.getSelectedElements({
+      selectedElementIds: appState.selectedElementIds,
+      includeBoundTextElement: true,
+      includeElementsInFrames: true,
+    });
     try {
       await exportCanvas(
         "clipboard",
@@ -158,7 +161,7 @@ export const actionCopyAsPng = register({
       };
     }
   },
-  contextItemPredicate: (elements) => {
+  predicate: (elements) => {
     return probablySupportsClipboardBlob && elements.length > 0;
   },
   contextItemLabel: "labels.copyAsPng",
@@ -168,12 +171,11 @@ export const actionCopyAsPng = register({
 export const copyText = register({
   name: "copyText",
   trackEvent: { category: "element" },
-  perform: (elements, appState) => {
-    const selectedElements = getSelectedElements(
-      getNonDeletedElements(elements),
-      appState,
-      true,
-    );
+  perform: (elements, appState, _, app) => {
+    const selectedElements = app.scene.getSelectedElements({
+      selectedElementIds: appState.selectedElementIds,
+      includeBoundTextElement: true,
+    });
 
     const text = selectedElements
       .reduce((acc: string[], element) => {
@@ -188,10 +190,15 @@ export const copyText = register({
       commitToHistory: false,
     };
   },
-  contextItemPredicate: (elements, appState) => {
+  predicate: (elements, appState, _, app) => {
     return (
       probablySupportsClipboardWriteText &&
-      getSelectedElements(elements, appState, true).some(isTextElement)
+      app.scene
+        .getSelectedElements({
+          selectedElementIds: appState.selectedElementIds,
+          includeBoundTextElement: true,
+        })
+        .some(isTextElement)
     );
   },
   contextItemLabel: "labels.copyText",

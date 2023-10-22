@@ -25,7 +25,12 @@ import {
   getElementPointsCoords,
   getMinMaxXYFromCurvePathOps,
 } from "./bounds";
-import { Point, AppState, PointerCoords } from "../types";
+import {
+  Point,
+  AppState,
+  PointerCoords,
+  InteractiveCanvasAppState,
+} from "../types";
 import { mutateElement } from "./mutateElement";
 import History from "../history";
 
@@ -37,10 +42,11 @@ import {
 } from "./binding";
 import { tupleToCoors } from "../utils";
 import { isBindingElement } from "./typeChecks";
-import { shouldRotateWithDiscreteAngle } from "../keys";
+import { KEYS, shouldRotateWithDiscreteAngle } from "../keys";
 import { getBoundTextElement, handleBindTextResize } from "./textElement";
-import { getShapeForElement } from "../renderer/renderElement";
 import { DRAGGING_THRESHOLD } from "../constants";
+import { Mutable } from "../utility-types";
+import { ShapeCache } from "../scene/ShapeCache";
 
 const editorMidPointsCache: {
   version: number | null;
@@ -215,7 +221,7 @@ export class LinearElementEditor {
           element,
           referencePoint,
           [scenePointerX, scenePointerY],
-          appState.gridSize,
+          event[KEYS.CTRL_OR_CMD] ? null : appState.gridSize,
         );
 
         LinearElementEditor.movePoints(element, [
@@ -232,7 +238,7 @@ export class LinearElementEditor {
           element,
           scenePointerX - linearElementEditor.pointerOffset.x,
           scenePointerY - linearElementEditor.pointerOffset.y,
-          appState.gridSize,
+          event[KEYS.CTRL_OR_CMD] ? null : appState.gridSize,
         );
 
         const deltaX = newDraggingPointPosition[0] - draggingPoint[0];
@@ -248,7 +254,7 @@ export class LinearElementEditor {
                     element,
                     scenePointerX - linearElementEditor.pointerOffset.x,
                     scenePointerY - linearElementEditor.pointerOffset.y,
-                    appState.gridSize,
+                    event[KEYS.CTRL_OR_CMD] ? null : appState.gridSize,
                   )
                 : ([
                     element.points[pointIndex][0] + deltaX,
@@ -263,11 +269,11 @@ export class LinearElementEditor {
             };
           }),
         );
+      }
 
-        const boundTextElement = getBoundTextElement(element);
-        if (boundTextElement) {
-          handleBindTextResize(element, false);
-        }
+      const boundTextElement = getBoundTextElement(element);
+      if (boundTextElement) {
+        handleBindTextResize(element, false);
       }
 
       // suggest bindings for first and last point if selected
@@ -397,7 +403,7 @@ export class LinearElementEditor {
 
   static getEditorMidPoints = (
     element: NonDeleted<ExcalidrawLinearElement>,
-    appState: AppState,
+    appState: InteractiveCanvasAppState,
   ): typeof editorMidPointsCache["points"] => {
     const boundText = getBoundTextElement(element);
 
@@ -421,7 +427,7 @@ export class LinearElementEditor {
 
   static updateEditorMidPointsCache = (
     element: NonDeleted<ExcalidrawLinearElement>,
-    appState: AppState,
+    appState: InteractiveCanvasAppState,
   ) => {
     const points = LinearElementEditor.getPointsGlobalCoordinates(element);
 
@@ -593,7 +599,7 @@ export class LinearElementEditor {
   }
 
   static handlePointerDown(
-    event: React.PointerEvent<HTMLCanvasElement>,
+    event: React.PointerEvent<HTMLElement>,
     appState: AppState,
     history: History,
     scenePointer: { x: number; y: number },
@@ -641,7 +647,7 @@ export class LinearElementEditor {
               element,
               scenePointer.x,
               scenePointer.y,
-              appState.gridSize,
+              event[KEYS.CTRL_OR_CMD] ? null : appState.gridSize,
             ),
           ],
         });
@@ -792,7 +798,7 @@ export class LinearElementEditor {
         element,
         lastCommittedPoint,
         [scenePointerX, scenePointerY],
-        appState.gridSize,
+        event[KEYS.CTRL_OR_CMD] ? null : appState.gridSize,
       );
 
       newPoint = [
@@ -804,7 +810,7 @@ export class LinearElementEditor {
         element,
         scenePointerX - appState.editingLinearElement.pointerOffset.x,
         scenePointerY - appState.editingLinearElement.pointerOffset.y,
-        appState.gridSize,
+        event[KEYS.CTRL_OR_CMD] ? null : appState.gridSize,
       );
     }
 
@@ -1170,6 +1176,7 @@ export class LinearElementEditor {
     linearElementEditor: LinearElementEditor,
     pointerCoords: PointerCoords,
     appState: AppState,
+    snapToGrid: boolean,
   ) {
     const element = LinearElementEditor.getElement(
       linearElementEditor.elementId,
@@ -1190,7 +1197,7 @@ export class LinearElementEditor {
       element,
       pointerCoords.x,
       pointerCoords.y,
-      appState.gridSize,
+      snapToGrid ? appState.gridSize : null,
     );
     const points = [
       ...element.points.slice(0, segmentMidpoint.index!),
@@ -1417,7 +1424,7 @@ export class LinearElementEditor {
     let y1;
     let x2;
     let y2;
-    if (element.points.length < 2 || !getShapeForElement(element)) {
+    if (element.points.length < 2 || !ShapeCache.get(element)) {
       // XXX this is just a poor estimate and not very useful
       const { minX, minY, maxX, maxY } = element.points.reduce(
         (limits, [x, y]) => {
@@ -1436,7 +1443,7 @@ export class LinearElementEditor {
       x2 = maxX + element.x;
       y2 = maxY + element.y;
     } else {
-      const shape = getShapeForElement(element)!;
+      const shape = ShapeCache.generateElementShape(element);
 
       // first element is always the curve
       const ops = getCurvePathOps(shape[0]);

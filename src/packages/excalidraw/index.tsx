@@ -1,6 +1,7 @@
 import React, { useEffect, forwardRef } from "react";
 import { InitializeApp } from "../../components/InitializeApp";
 import App from "../../components/App";
+import { isShallowEqual } from "../../utils";
 
 import "../../css/app.scss";
 import "../../css/styles.scss";
@@ -11,17 +12,18 @@ import { DEFAULT_UI_OPTIONS } from "../../constants";
 import { Provider } from "jotai";
 import { jotaiScope, jotaiStore } from "../../jotai";
 import Footer from "../../components/footer/FooterCenter";
+import MainMenu from "../../components/main-menu/MainMenu";
+import WelcomeScreen from "../../components/welcome-screen/WelcomeScreen";
+import LiveCollaborationTrigger from "../../components/live-collaboration/LiveCollaborationTrigger";
 
 const ExcalidrawBase = (props: ExcalidrawProps) => {
   const {
     onChange,
     initialData,
     excalidrawRef,
-    onCollabButtonClick,
     isCollaborating = false,
     onPointerUpdate,
     renderTopRightUI,
-    renderSidebar,
     langCode = defaultLang.code,
     viewModeEnabled,
     zenModeEnabled,
@@ -40,10 +42,14 @@ const ExcalidrawBase = (props: ExcalidrawProps) => {
     onPointerDown,
     onScrollChange,
     children,
+    validateEmbeddable,
+    renderEmbeddable,
   } = props;
 
   const canvasActions = props.UIOptions?.canvasActions;
 
+  // FIXME normalize/set defaults in parent component so that the memo resolver
+  // compares the same values
   const UIOptions: AppProps["UIOptions"] = {
     ...props.UIOptions,
     canvasActions: {
@@ -84,13 +90,12 @@ const ExcalidrawBase = (props: ExcalidrawProps) => {
   }, []);
 
   return (
-    <InitializeApp langCode={langCode} theme={theme}>
-      <Provider unstable_createStore={() => jotaiStore} scope={jotaiScope}>
+    <Provider unstable_createStore={() => jotaiStore} scope={jotaiScope}>
+      <InitializeApp langCode={langCode} theme={theme}>
         <App
           onChange={onChange}
           initialData={initialData}
           excalidrawRef={excalidrawRef}
-          onCollabButtonClick={onCollabButtonClick}
           isCollaborating={isCollaborating}
           onPointerUpdate={onPointerUpdate}
           renderTopRightUI={renderTopRightUI}
@@ -112,12 +117,13 @@ const ExcalidrawBase = (props: ExcalidrawProps) => {
           onLinkOpen={onLinkOpen}
           onPointerDown={onPointerDown}
           onScrollChange={onScrollChange}
-          renderSidebar={renderSidebar}
+          validateEmbeddable={validateEmbeddable}
+          renderEmbeddable={renderEmbeddable}
         >
           {children}
         </App>
-      </Provider>
-    </InitializeApp>
+      </InitializeApp>
+    </Provider>
   );
 };
 
@@ -127,6 +133,11 @@ const areEqual = (
   prevProps: PublicExcalidrawProps,
   nextProps: PublicExcalidrawProps,
 ) => {
+  // short-circuit early
+  if (prevProps.children !== nextProps.children) {
+    return false;
+  }
+
   const {
     initialData: prevInitialData,
     UIOptions: prevUIOptions = {},
@@ -155,7 +166,7 @@ const areEqual = (
       const canvasOptionKeys = Object.keys(
         prevUIOptions.canvasActions!,
       ) as (keyof Partial<typeof DEFAULT_UI_OPTIONS.canvasActions>)[];
-      canvasOptionKeys.every((key) => {
+      return canvasOptionKeys.every((key) => {
         if (
           key === "export" &&
           prevUIOptions?.canvasActions?.export &&
@@ -172,16 +183,10 @@ const areEqual = (
         );
       });
     }
-    return true;
+    return prevUIOptions[key] === nextUIOptions[key];
   });
 
-  const prevKeys = Object.keys(prevProps) as (keyof typeof prev)[];
-  const nextKeys = Object.keys(nextProps) as (keyof typeof next)[];
-  return (
-    isUIOptionsSame &&
-    prevKeys.length === nextKeys.length &&
-    prevKeys.every((key) => prev[key] === next[key])
-  );
+  return isUIOptionsSame && isShallowEqual(prev, next);
 };
 
 const forwardedRefComp = forwardRef<
@@ -197,7 +202,7 @@ export {
   isInvisiblySmallElement,
   getNonDeletedElements,
 } from "../../element";
-export { defaultLang, languages } from "../../i18n";
+export { defaultLang, useI18n, languages } from "../../i18n";
 export {
   restore,
   restoreAppState,
@@ -238,4 +243,14 @@ export {
 } from "../../utils";
 
 export { Sidebar } from "../../components/Sidebar/Sidebar";
+export { Button } from "../../components/Button";
 export { Footer };
+export { MainMenu };
+export { useDevice } from "../../components/App";
+export { WelcomeScreen };
+export { LiveCollaborationTrigger };
+
+export { DefaultSidebar } from "../../components/DefaultSidebar";
+
+export { normalizeLink } from "../../data/url";
+export { convertToExcalidrawElements } from "../../data/transform";

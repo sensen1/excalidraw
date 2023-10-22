@@ -15,12 +15,13 @@ export const actionToggleGridMode = register({
       appState: {
         ...appState,
         gridSize: this.checked!(appState) ? null : GRID_SIZE,
+        objectsSnapModeEnabled: false,
       },
       commitToHistory: false,
     };
   },
   checked: (appState: AppState) => appState.gridSize !== null,
-  contextItemPredicate: (element, appState, props) => {
+  predicate: (element, appState, props) => {
     return typeof props.gridModeEnabled === "undefined";
   },
   contextItemLabel: "labels.showGrid",

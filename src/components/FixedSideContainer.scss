@@ -1,3 +1,5 @@
+@import "../css/variables.module";
+
 .excalidraw {
   .FixedSideContainer {
     position: absolute;
@@ -5,14 +7,14 @@
   }
 
   .FixedSideContainer > * {
-    pointer-events: all;
+    pointer-events: var(--ui-pointerEvents);
   }
 
   .FixedSideContainer_side_top {
-    left: 1rem;
-    top: 1rem;
-    right: 1rem;
-    bottom: 1rem;
+    left: var(--editor-container-padding);
+    top: var(--editor-container-padding);
+    right: var(--editor-container-padding);
+    bottom: var(--editor-container-padding);
     z-index: 2;
   }
 
