@@ -20,7 +20,7 @@
       name="description"
       content="Excalidraw is a virtual collaborative whiteboard tool that lets you easily sketch diagrams that have a hand-drawn feel to them."
     />
-    <meta name="image" content="https://excalidraw.com/og-general-v1.png" />
+    <meta name="image" content="https://excalidraw.com/og-image-2.png" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:site_name" content="Excalidraw" />
@@ -35,7 +35,7 @@
       property="og:description"
       content="Excalidraw is a virtual collaborative whiteboard tool that lets you easily sketch diagrams that have a hand-drawn feel to them."
     />
-    <meta property="og:image" content="https://excalidraw.com/og-fb-v1.png" />
+    <meta property="og:image" content="https://excalidraw.com/og-image-2.png" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
@@ -51,7 +51,7 @@
     />
     <meta
       property="twitter:image"
-      content="https://excalidraw.com/og-twitter-v1.png"
+      content="https://excalidraw.com/og-twitter-v2.png"
     />
 
     <!-- General tags -->
@@ -78,7 +78,7 @@
       }
     </style>
     <!------------------------------------------------------------------------->
-
+    <% if ("%PROD%" === "true") { %>
     <script>
       // Redirect Excalidraw+ users which have auto-redirect enabled.
       //
@@ -97,8 +97,11 @@
         window.location.href = "https://app.excalidraw.com";
       }
     </script>
+    <% } %>
 
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
 
     <!-- Excalidraw version -->
     <meta name="version" content="{version}" />
@@ -126,27 +129,21 @@
     />
     <link
       rel="preload"
-      href="Cascadia.woff2"
+      href="/Cascadia.woff2"
       as="font"
       type="font/woff2"
       crossorigin="anonymous"
     />
 
-    <link
-      rel="manifest"
-      href="manifest.json"
-      style="--pwacompat-splash-font: 24px Virgil"
-    />
-
-    <link rel="stylesheet" href="fonts.css" type="text/css" />
-    <% if (process.env.REACT_APP_DEV_DISABLE_LIVE_RELOAD==="true" ) { %>
+    <link rel="stylesheet" href="/fonts.css" type="text/css" />
+    <% if ("%VITE_APP_DEV_DISABLE_LIVE_RELOAD%"==="true" ) { %>
     <script>
       {
         const _WebSocket = window.WebSocket;
         window.WebSocket = function (url) {
           if (/ws:\/\/localhost:.+?\/sockjs-node/.test(url)) {
             console.info(
-              "[!!!] Live reload is disabled via process.env.REACT_APP_DEV_DISABLE_LIVE_RELOAD [!!!]",
+              "[!!!] Live reload is disabled via VITE_APP_DEV_DISABLE_LIVE_RELOAD [!!!]",
             );
           } else {
             return new _WebSocket(url);
@@ -160,29 +157,12 @@
       // setting this so that libraries installation reuses this window tab.
       window.name = "_excalidraw";
     </script>
-    <% if (process.env.REACT_APP_GOOGLE_ANALYTICS_ID) { %>
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=%REACT_APP_GOOGLE_ANALYTICS_ID%"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-      gtag("config", "%REACT_APP_GOOGLE_ANALYTICS_ID%");
-    </script>
-    <% } %>
 
     <!-- FIXME: remove this when we update CRA (fix SW caching) -->
     <style>
       body,
       html {
         margin: 0;
-        --ui-font: Assistant, system-ui, BlinkMacSystemFont, -apple-system,
-          Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-        font-family: var(--ui-font);
         -webkit-text-size-adjust: 100%;
 
         width: 100%;
@@ -229,5 +209,40 @@
       <h1 class="visually-hidden">Excalidraw</h1>
     </header>
     <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+    <% if ("%VITE_APP_DEV_DISABLE_LIVE_RELOAD%" !== 'true') { %>
+    <!-- 100% privacy friendly analytics -->
+    <script>
+      // need to load this script dynamically bcs. of iframe embed tracking
+      var scriptEle = document.createElement("script");
+      scriptEle.setAttribute(
+        "src",
+        "https://scripts.simpleanalyticscdn.com/latest.js",
+      );
+      scriptEle.setAttribute("type", "text/javascript");
+      scriptEle.setAttribute("defer", true);
+      scriptEle.setAttribute("async", true);
+      // if iframe
+      if (window.self !== window.top) {
+        scriptEle.setAttribute("data-auto-collect", true);
+      }
+
+      document.body.appendChild(scriptEle);
+
+      // if iframe
+      if (window.self !== window.top) {
+        scriptEle.addEventListener("load", () => {
+          if (window.sa_pageview) {
+            window.window.sa_event(action, {
+              category: "iframe",
+              label: "embed",
+              value: window.location.pathname,
+            });
+          }
+        });
+      }
+    </script>
+    <!-- end LEGACY GOOGLE ANALYTICS -->
+    <% } %>
   </body>
 </html>
